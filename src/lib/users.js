@@ -1,5 +1,7 @@
 import bcrypt from 'bcrypt';
-import { query } from './db.js';
+import xss from 'xss';
+import { addPageMetadata } from '../utils/addPageMetadata.js';
+import { pagedQuery, query, singleQuery } from './db.js';
 
 export async function comparePasswords(password, hash) {
   try {
@@ -44,23 +46,64 @@ export async function findById(id) {
   return null;
 }
 
-export async function createUser(username, password) {
+export async function createUser(name, username, password) {
   // Geymum hashað password!
   const hashedPassword = await bcrypt.hash(password, 11);
-
   const q = `
     INSERT INTO
-      users (username, password)
-    VALUES ($1, $2)
+      users (name, username, password)
+    VALUES ($1, $2, $3)
     RETURNING *
   `;
 
   try {
-    const result = await query(q, [username, hashedPassword]);
+    const result = await query(q, [xss(name), xss(username), hashedPassword]);
     return result.rows[0];
   } catch (e) {
     console.error('Gat ekki búið til notanda');
   }
 
   return null;
+}
+
+export async function listUsers(req, res) {
+  const { offset = 0, limit = 10 } = req.query;
+
+  const users = await pagedQuery(
+    `SELECT
+        id, name, username, admin
+      FROM
+        users
+      ORDER BY id ASC`,
+    [],
+    { offset, limit },
+  );
+
+  const usersWithPage = addPageMetadata(
+    users,
+    req.path,
+    { offset, limit, length: users.items.length },
+  );
+
+  return res.json(usersWithPage);
+}
+
+export async function listUser(userId) {
+  const user = await singleQuery(
+    `
+      SELECT
+        id, name, username, admin
+      FROM
+        users
+      WHERE
+        id = $1
+    `,
+    [userId],
+  );
+
+  if (!user) {
+    return null;
+  }
+
+  return user;
 }
