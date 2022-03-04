@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 dotenv.config();
 
 const {
-  BASE_URL,
+  BASE_URL = 'http://localhost:3000',
   ADMIN_USER: adminUser,
   ADMIN_PASS: adminPass,
 } = process.env;
@@ -29,7 +29,6 @@ export async function methodAndParse(method, path, data = null, token = null) {
   if (method !== 'GET') {
     options.method = method;
   }
-
   if (data) {
     options.headers['content-type'] = 'application/json';
     options.body = JSON.stringify(data);
@@ -47,9 +46,12 @@ export async function methodAndParse(method, path, data = null, token = null) {
   };
 }
 
-export async function fetchAndParse(path, token = null) {
+export async function fetchAndParse(path, token) {
+
   return methodAndParse('GET', path, null, token);
 }
+
+
 
 export async function postAndParse(path, data, token = null) {
   return methodAndParse('POST', path, data, token);

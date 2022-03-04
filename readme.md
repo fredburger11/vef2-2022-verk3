@@ -1,6 +1,8 @@
 # Vefforritun 2, 2022. Verkefni 3: Viðburðakerfis vefþjónustur
 
-username: admin, password: 123
+Notendur: username: admin, password: 1234567890 ( admin = true )
+          username: Klari, password: 123 ( admin = false )
+
 
 ```bash
 npm install
