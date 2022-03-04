@@ -98,41 +98,49 @@ export async function dropSchema(dropFile = DROP_SCHEMA_FILE) {
 
   return query(data.toString('utf-8'));
 }
-/*
-export async function createEvent({ name, slug, description } = {}) {
+
+export async function createEvent({ name, description }) {
+  const slug = slugify(name);
+  const creatorId = '1';
   const q = `
     INSERT INTO events
-      (name, slug, description)
+      (name, slug, description, creatorId)
     VALUES
-      ($1, $2, $3)
-    RETURNING id, name, slug, description;
+      ($1, $2, $3, $4)
+    RETURNING  name, slug, description, creatorId;
   `;
-  const values = [name, slug, description];
-  const result = await query(q, values);
+  const values = [name, slug, description, creatorId];
+  try {
+    const result = await query(q, values);
 
-  if (result && result.rowCount === 1) {
-    return result.rows[0];
+    if (result && result.rowCount === 1) {
+      return result.rows[0];
+    }
+
+  } catch (e) {
+    console.error(null);
   }
-
   return null;
+
 }
-*/
 
-export async function createEvent(req, res) {
+
+export async function createEventx(req, res) {
   const { name, description } = req.body;
-
+  const { user: { id } = {} } = req;
+  const creatorId = id;
   const slug = slugify(name);
   try {
     //
     const newEvent = await singleQuery(
       `
       INSERT INTO
-        events (name, slug, description)
+        events (name, slug, description, creatorId)
       VALUES
-        ($1, $2, $3)
-      RETURNING name, slug, description;
+        ($1, $2, $3, $4)
+      RETURNING name, slug, description, creatorId;
       `,
-      [xss(name), xss(slug), xss(description)],
+      [xss(name), xss(slug), xss(description), creatorId],
     );
 
     return res.status(201).json(newEvent);
@@ -176,16 +184,16 @@ export async function updateEvent(req, res) {
 
 }
 
-export async function register({ name, comment, event } = {}) {
+export async function register({ userId, comment, event } = {}) {
   const q = `
     INSERT INTO registrations
-      (name, comment, event)
+      (userId, comment, event)
     VALUES
       ($1, $2, $3)
     RETURNING
-      id, name, comment, event;
+      userId, comment, event;
   `;
-  const values = [name, comment, event];
+  const values = [userId, xss(comment), event];
   const result = await query(q, values);
 
   if (result && result.rowCount === 1) {
@@ -200,7 +208,7 @@ export async function listEvents(req, res) {
 
   const events = await pagedQuery(
     `SELECT
-        id, name, slug, description, created, updated
+        id, name, slug, description, creatorId, created, updated
       FROM
         events
       ORDER BY id ASC`,
@@ -217,16 +225,16 @@ export async function listEvents(req, res) {
   return res.json(eventsWithPage);
 }
 
-export async function listEvent(id) {
+export async function listEvent(slug) {
   const q = `
     SELECT
-      id, name, slug, description, created, updated
+      id, name, slug, description, creatorId, created, updated
     FROM
       events
     WHERE id = $1
   `;
 
-  const result = await query(q, [id]);
+  const result = await query(q, [slug]);
 
   if (result && result.rowCount === 1) {
     return result.rows[0];
@@ -258,7 +266,7 @@ export async function listEventByName(slug) {
 export async function listRegistered(event) {
   const q = `
     SELECT
-      id, name, comment
+      userId, comment
     FROM
       registrations
     WHERE event = $1
@@ -299,20 +307,22 @@ export async function deleteEvent(req, res) {
 }
 
 export async function deleteRegistration(req, res) {
-  const { event } = req.params;
+
   const { id } = req.user;
+  const { event } = req.params;
+
 
   try {
     await singleQuery(
       `
-      DELETE FROM registrations WHERE id = $1 AND name = $2
+      DELETE FROM registrations WHERE id = $1
       `,
-      [event, id],
+      [id],
     );
 
     return res.status(200).json({});
   } catch (e) {
-    // logger.error(`unable to delete state of "${event}" for user "${id}"`, e);
+    console.error(`unable to delete state of "${event}" for user "${id}"`, e);
   }
 
   return res.status(500).json(null);

@@ -39,7 +39,16 @@ app.use((req, res, next) => {
   return next();
 });
 
-
+/*
+GET:
+> curl http://localhost:3000/
+{
+    "register": "/users/register",
+    "login": "/users/login",
+    "users": "/users",
+    "events": "/events"
+}
+*/
 app.get('/', (req, res) => {
   res.json({
     register: '/users/register',

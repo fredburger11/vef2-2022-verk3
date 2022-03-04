@@ -27,12 +27,6 @@ async function loginRoute(req, res) {
   const { username } = req.body;
 
   const user = await findByUsername(username);
-  /*
-  if (!user) {
-    logger.error('Unable to find user', username);
-    return res.status(500).json({});
-  }
-  */
 
   const payload = { id: user.id };
   const token = jwt.sign(payload, jwtOptions.secretOrKey, tokenOptions);
@@ -47,7 +41,6 @@ async function loginRoute(req, res) {
 
 async function currentUserRoute(req, res) {
   const { user: { id } = {} } = req;
-
   const user = await findById(id);
 
   if (!user) {
@@ -58,7 +51,22 @@ async function currentUserRoute(req, res) {
 
   return res.json(user);
 }
-
+/*
+POST:
+> curl -vH "Content-Type: application/json" -d
+'{
+    "name":"Kari",
+    "username":"KariKlariSmari",
+    "password":"KariKlariSmari"
+}'
+http://localhost:3000/users/register/
+{
+    "id": 2,
+    "name": "Kari",
+    "username": "KariKlariSmari",
+    "admin": false
+}
+*/
 userRouter.post(
   '/users/register',
   nameValidator,
@@ -70,7 +78,25 @@ userRouter.post(
   validationCheck,
   catchErrors(registerRoute),
 );
-
+/*
+POST:
+> curl -vH "Content-Type: application/json" -d
+'{
+    "username":"KariKlariSmari",
+    "password":"KariKlariSmari"
+}'
+http://localhost:3000/users/login/
+{
+    "user": {
+        "id": 2,
+        "name": "Kari",
+        "username": "KariKlariSmari",
+        "admin": false
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNjQ2MzYyODQyLCJleHAiOjE2NDYzNjY0NDJ9.RrFma_i260jCiQZK-mGug95q85jEk-mRPwSoDH4exus",
+    "expiresIn": 3600
+}
+*/
 userRouter.post(
   '/users/login',
   usernameValidator,
@@ -82,9 +108,19 @@ userRouter.post(
   catchErrors(loginRoute),
 );
 
+/*
+GET:
+> curl http://localhost:3000/users/me/
+{
+    "id": 2,
+    "name": "Kari",
+    "username": "KariKlariSmari",
+    "admin": false
+}
+*/
 userRouter.get(
   '/users/me',
   requireAuthentication,
-  catchErrors(validationCheck),
+  validationCheck,
   catchErrors(currentUserRoute),
 );

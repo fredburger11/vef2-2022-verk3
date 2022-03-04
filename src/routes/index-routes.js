@@ -3,13 +3,13 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { catchErrors } from '../lib/catch-errors.js';
 import {
-  createEvent, deleteEvent, deleteRegistration, listEvent, listEventByName, listEvents,
+  createEventx, deleteEvent, deleteRegistration, listEvent, listEvents,
   listRegistered,
   register,
   updateEvent
 } from '../lib/db.js';
 import { validationCheck } from '../lib/helpers.js';
-import { addUserIfAuthenticated } from '../lib/passport.js';
+import { addUserIfAuthenticated, requireAdmin, requireAuthentication } from '../lib/passport.js';
 import { listUser, listUsers } from '../lib/users.js';
 import {
   atLeastOneBodyValueValidator, pagingQuerystringValidator, sanitizationMiddleware, validateResourceExists,
@@ -29,15 +29,21 @@ indexRouter.get('/', async (req, res) => {
   res.json(JSON.parse(indexJson));
 });
 
-async function indexRoute(req, res) {
-  const events = await listEvents();
+async function eventOwnerOrAdmin(req, res, next) {
+  const { id } = req.params;
 
-  res.render('index', {
-    title: 'Viðburðasíðan',
-    admin: false,
-    events,
-  });
+  const event = await listEvent(id);
+  const user = req.user;
+
+  if ((user.id === event.creatorid) || user.admin) {
+    return next();
+  }
+  const error = 'insufficient authorization';
+  // console.log('insufficient authorization1');
+  return res.status(401).json({ error });
 }
+
+
 
 async function eventRoute(req, res, next) {
   const { name } = req.body;
@@ -56,76 +62,96 @@ async function eventRoute(req, res, next) {
 
   const registered = await listRegistered(event.id);
 
-  return res.render('event', {
-    //title: `${event.name} — Viðburðasíðan`,
-    event,
-    registered,
-    errors: [],
-    data: {},
-  });
+  return registered;
+
 }
 
-async function eventRegisteredRoute(req, res) {
-  const events = await listEvents();
-
-  res.render('registered', {
-    title: 'Viðburðasíðan',
-    events,
-  });
-}
 
 async function registerRoute(req, res) {
-  const { username, comment } = req.body;
-  const { slug } = req.params;
-  const event = await listEventByName(slug);
+  const { id: slug } = req.params;
+  const { comment } = req.body;
+  const user = req.user;
+  const userId = user.id;
+  const event = await listEvent(slug);
 
   const registered = await register({
-    username,
+    userId,
     comment,
     event: event.id,
   });
-
   return res.status(201).json(registered);
 
 };
 
-
-
 /*
-indexRouter.get('/', catchErrors(indexRoute));
-indexRouter.get('/:slug', catchErrors(eventRoute));
-indexRouter.post(
-  '/:slug',
-  registrationValidationMiddleware('comment'),
-  xssSanitizationMiddleware('comment'),
-  catchErrors(validationCheck),
-  sanitizationMiddleware('comment'),
-  catchErrors(registerRoute)
-);
-indexRouter.get('/:slug/thanks', catchErrors(eventRegisteredRoute));
+GET:
+> curl http://localhost:3000/users
+{
+    "limit": 10,
+    "offset": 0,
+    "items": [
+        {
+            "id": 2,
+            "name": "Kari",
+            "username": "KariKlariSmari",
+            "admin": false
+        }
+    ],
+    "_links": {
+        "self": {
+            "href": "http://127.0.0.1:3000/users/?offset=0&limit=10"
+        }
+    }
+}
 */
-
-//##########  verkefni 3 ######################
-
-
-
-// rdy
 indexRouter.get(
   '/users',
-  //requireAdmin,
+  requireAdmin,
   pagingQuerystringValidator,
   validationCheck,
   listUsers,
 );
-// rdy
+/*
+GET:
+> curl http://localhost:3000/users/2
+{
+    "id": 2,
+    "name": "Kari",
+    "username": "KariKlariSmari",
+    "admin": false
+}
+*/
 indexRouter.get(
   '/users/:id',
-  //requireAdmin,
+  requireAdmin,
   validateResourceExists(listUser),
   validationCheck,
   returnResource,
 );
-// rdy
+/*
+GET:
+> curl http://localhost:3000/events
+{
+    "limit": 10,
+    "offset": 0,
+    "items": [
+        {
+            "id": 1,
+            "name": "Forritarahittingur í febrúar",
+            "slug": "forritarahittingur-i-februar",
+            "description": "Forritarar hittast í febrúar og forrita saman eitthvað frábært.",
+            "creatorid": 1,
+            "created": "2022-03-04T02:53:58.238Z",
+            "updated": "2022-03-04T02:53:58.238Z"
+        }
+    ],
+    "_links": {
+        "self": {
+            "href": "http://127.0.0.1:3000/events?offset=0&limit=10"
+        }
+    }
+}
+*/
 indexRouter.get(
   '/events',
   pagingQuerystringValidator,
@@ -133,7 +159,19 @@ indexRouter.get(
   catchErrors(listEvents),
 );
 
-// rdy
+/*
+GET:
+> curl http://localhost:3000/events/1
+{
+    "id": 1,
+    "name": "Forritarahittingur í febrúar",
+    "slug": "forritarahittingur-i-februar",
+    "description": "Forritarar hittast í febrúar og forrita saman eitthvað frábært.",
+    "creatorid": 1,
+    "created": "2022-03-04T02:53:58.238Z",
+    "updated": "2022-03-04T02:53:58.238Z"
+}
+*/
 indexRouter.get(
   '/events/:id',
   addUserIfAuthenticated,
@@ -141,30 +179,72 @@ indexRouter.get(
   validationCheck,
   returnResource,
 );
-// rdy
+/*
+POST:
+> curl -vH "Content-Type: application/json" -d
+'{
+    "name":"big stack pokermot",
+    "description  ":"50k freeze"
+}'
+http://localhost:3000/events/
+{
+    "name": "big stack pokermot",
+    "slug": "big-stack-pokermot",
+    "description": "50k freeze",
+    "creatorid": 2
+}
+*/
 indexRouter.post(
   '/events',
-  //requireAuthentication,
+  requireAuthentication,
   xssSanitizationMiddleware('comment'),
   sanitizationMiddleware('comment'),
   validationCheck,
-  catchErrors(createEvent),
+  catchErrors(createEventx),
 
 );
-
+/*
+POST:
+> curl -vH "Content-Type: application/json" -d
+'{
+    "comment":"Eg heiti Kari og eg kem"
+}'
+http://localhost:3000/events/4/register
+{
+    "userid": 2,
+    "comment": "Eg heiti Kari og eg kem",
+    "event": 4
+}
+*/
 indexRouter.post(
   '/events/:id/register',
-  //requireAuthentication,
-  //registrationValidationMiddleware,
-  //xssSanitizationMiddleware('comment'),
-  //sanitizationMiddleware('comment'),
-  //validationCheck,
+  requireAuthentication,
+  xssSanitizationMiddleware('comment'),
+  sanitizationMiddleware('comment'),
+  validationCheck,
   catchErrors(registerRoute),
 );
-// þarf að laga
+/*
+PATCH:
+> curl -X PATCH -H "Content-Type: application/json" -d
+'{
+    {
+    "name":"risa pokermot",
+    "description":"100k freeze"
+    }
+}'
+http://localhost:3000/events/4/
+{
+    "id": 4,
+    "name": "risa pokermot",
+    "slug": "risa-pokermot",
+    "description": "100k freeze"
+}
+*/
 indexRouter.patch(
   '/events/:id',
-  //requireAdmin??( Vantar fall sem annaðhvort hleypir admin eða 'eiganda' events)
+  requireAuthentication,
+  eventOwnerOrAdmin,
   xssSanitizationMiddleware('comment'),
   sanitizationMiddleware('comment'),
   atLeastOneBodyValueValidator(['name', 'description']),
@@ -172,20 +252,28 @@ indexRouter.patch(
   catchErrors(updateEvent),
   returnResource,
 );
-
+/*
+DELETE:
+> curl -X DELETE http://localhost:3000/events/4/
+{}
+*/
 indexRouter.delete(
   '/events/:id',
-  //requireAdmin??( Vantar fall sem annaðhvort hleypir admin eða 'eiganda' events)
+  requireAuthentication,
+  eventOwnerOrAdmin,
   validateResourceExists(listEvent),
-  catchErrors(validationCheck),
-  catchErrors(deleteEvent), // þetta þarf að laga
+  validationCheck,
+  catchErrors(deleteEvent),
 );
-
+/*
+DELETE:
+> curl -X DELETE http://localhost:3000/events/4/register
+{}
+*/
 indexRouter.delete(
   '/events/:id/register',
-  //requireAuthentication,
-  validateResourceExists(registerRoute),
-  catchErrors(validationCheck),
+  requireAuthentication,
+  validationCheck,
   catchErrors(deleteRegistration)
 );
 

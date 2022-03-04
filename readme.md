@@ -10,14 +10,6 @@ node ./src/setup.js # eða npm run setup
 npm run dev
 ```
 
-
-## indexRouter.get('/events/:id) er ekki að virka
-
-###### Hugleiðingar
-
-# Spyrja um notandan sem ég skrái hvort hann þurfi að vera admin
-# Hvaða get/post þarf að taka út
-# xss sanitation í routes!!!
-# Spurning með get('/login' og '/register') og login.js!!
-# Hvernig checka ég á því hvort að notandi sé 'eigandi' "pósts";
-# Vandamál með að nota users/login og users/register
+CURL:
+Dæmi um curl köll eru fyrir ofan hverja vefþjónustu fyrir sig.
+Þau eru að finna í app.js, user-routes.js og index-routes.js

@@ -91,6 +91,7 @@ export function requireAdmin(req, res, next) {
 
       if (!user.admin) {
         const error = 'insufficient authorization';
+        console.log('insufficient authorization1');
         return res.status(401).json({ error });
       }
 
@@ -100,6 +101,7 @@ export function requireAdmin(req, res, next) {
     },
   )(req, res, next);
 }
+
 
 export const tokenOptions = { expiresIn: parseInt(tokenLifetime, 10) };
 
