@@ -7,7 +7,9 @@ import {
   createUser, findById, findByUsername
 } from '../lib/users.js';
 import {
-  nameValidator, passwordValidator, sanitizationMiddleware, usernameAndPaswordValidValidator, usernameDoesNotExistValidator, usernameValidator,
+  nameValidator, passwordValidator,
+  sanitizationMiddleware, usernameAndPaswordValidValidator,
+  usernameDoesNotExistValidator, usernameValidator,
   xssSanitizationMiddleware
 } from '../lib/validation.js';
 

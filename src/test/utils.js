@@ -1,23 +1,16 @@
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-
-
-const basePath = dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 
 const {
-  BASE_URL = 'http://localhost:3000',
+  BASE_URL,
   ADMIN_USER: adminUser,
-  ADMIN_PASS: adminPass
+  ADMIN_PASS: adminPass,
 } = process.env;
 
 export const baseUrl = BASE_URL;
-
 export function randomValue() {
   return crypto.randomBytes(16).toString('hex');
 }
@@ -28,7 +21,7 @@ export function getRandomInt(min, max) {
   return Math.floor(Math.random() * (floorMax - ceilMin) + ceilMin);
 }
 
-export async function methodAndParse(method, path, data = null, token = null, imagePath = null) {
+export async function methodAndParse(method, path, data = null, token = null) {
   const url = new URL(path, baseUrl);
 
   const options = { headers: {} };
@@ -58,12 +51,12 @@ export async function fetchAndParse(path, token = null) {
   return methodAndParse('GET', path, null, token);
 }
 
-export async function postAndParse(path, data, token = null, imagePath) {
-  return methodAndParse('POST', path, data, token, imagePath);
+export async function postAndParse(path, data, token = null) {
+  return methodAndParse('POST', path, data, token);
 }
 
-export async function patchAndParse(path, data, token = null, imagePath) {
-  return methodAndParse('PATCH', path, data, token, imagePath);
+export async function patchAndParse(path, data, token = null) {
+  return methodAndParse('PATCH', path, data, token);
 }
 
 export async function deleteAndParse(path, data, token = null) {

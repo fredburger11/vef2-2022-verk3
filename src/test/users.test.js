@@ -20,7 +20,6 @@ describe('users', () => {
     const { result, status } = await fetchAndParse('/users/1');
 
     expect(status).toBe(200);
-    console.log("result.id " + result.id);
     expect(result.id).toBe(1);
     expect(result.name).toBeDefined();
     expect(result.username).toBeDefined();

@@ -128,7 +128,7 @@ export const usernameAndPaswordValidValidator = body('username')
       valid = await comparePasswords(password, user.password);
     } catch (e) {
       // Here we would track login attempts for monitoring purposes
-      logger.info(`invalid login attempt for ${username}`);
+      console.error(`invalid login attempt for ${username}`);
     }
 
     if (!valid) {

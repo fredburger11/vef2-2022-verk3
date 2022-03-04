@@ -4,6 +4,7 @@ import xss from 'xss';
 import { addPageMetadata } from '../utils/addPageMetadata.js';
 import { toPositiveNumberOrDefault } from '../utils/toPositiveNumberOrDefault.js';
 import { slugify } from './slugify.js';
+
 const SCHEMA_FILE = './sql/schema.sql';
 const DROP_SCHEMA_FILE = './sql/drop.sql';
 
@@ -154,7 +155,7 @@ export async function createEventx(req, res) {
 }
 
 export async function updateEvent(req, res) {
-  const { id: id } = req.params;
+  const { id } = req.params;
   const { name, description } = req.body;
 
   const slug = slugify(name);

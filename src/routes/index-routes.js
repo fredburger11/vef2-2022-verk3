@@ -3,16 +3,17 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { catchErrors } from '../lib/catch-errors.js';
 import {
-  createEventx, deleteEvent, deleteRegistration, listEvent, listEvents,
-  listRegistered,
-  register,
+  createEventx, deleteEvent, deleteRegistration, listEvent, listEvents, register,
   updateEvent
 } from '../lib/db.js';
 import { validationCheck } from '../lib/helpers.js';
 import { addUserIfAuthenticated, requireAdmin, requireAuthentication } from '../lib/passport.js';
 import { listUser, listUsers } from '../lib/users.js';
 import {
-  atLeastOneBodyValueValidator, pagingQuerystringValidator, sanitizationMiddleware, validateResourceExists,
+  atLeastOneBodyValueValidator,
+  pagingQuerystringValidator,
+  sanitizationMiddleware,
+  validateResourceExists,
   xssSanitizationMiddleware
 } from '../lib/validation.js';
 import { readFile } from '../utils/fs-helpers.js';
@@ -33,44 +34,20 @@ async function eventOwnerOrAdmin(req, res, next) {
   const { id } = req.params;
 
   const event = await listEvent(id);
-  const user = req.user;
+  const { user } = req.user;
 
   if ((user.id === event.creatorid) || user.admin) {
     return next();
   }
   const error = 'insufficient authorization';
-  // console.log('insufficient authorization1');
+
   return res.status(401).json({ error });
 }
-
-
-
-async function eventRoute(req, res, next) {
-  const { name } = req.body;
-  console.log(name);
-  const { id } = req.body;
-  console.log(id);
-  //const { slug } = req.params;
-  //const event = await listEvent(slug);
-  const event = await listEvent(id);
-
-  //return res.json(event);
-
-  if (!event) {
-    return next();
-  }
-
-  const registered = await listRegistered(event.id);
-
-  return registered;
-
-}
-
 
 async function registerRoute(req, res) {
   const { id: slug } = req.params;
   const { comment } = req.body;
-  const user = req.user;
+  const { user } = req.user;
   const userId = user.id;
   const event = await listEvent(slug);
 
